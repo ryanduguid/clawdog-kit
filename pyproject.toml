@@ -1,0 +1,36 @@
+[project]
+name = "clawdog-kit"
+version = "0.1.0"
+description = "ClawDog — agent-driven AU tax & accounting calculator kit. CSV templates + reference scripts for the LodgeiT Labs clawdog-calculator-api."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "LodgeiT Labs Foundation", email = "contact@lodgeit.org" },
+]
+requires-python = ">=3.10"
+# The reference impl is stdlib-only by design. The kit ships ZERO runtime deps.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://lodgeit.org/clawdog/"
+Repository = "https://github.com/lodgeit-labs/clawdog-kit"
+"Calc API" = "https://github.com/lodgeit-labs/clawdog-calculator-api"
+Issues = "https://github.com/lodgeit-labs/clawdog-kit/issues"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "B", "UP"]
+ignore = ["E501"]

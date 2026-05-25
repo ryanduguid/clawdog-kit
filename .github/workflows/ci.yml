@@ -1,0 +1,51 @@
+# clawdog-kit CI
+#
+# Two jobs:
+#   1. hermetic — pytest without network. Runs on every push + PR.
+#   2. live-smoke — pytest WITH network, opt-in via env flag. Runs on
+#      pushes to main only (so a public PR can't be used to amplify
+#      requests against the calc-api).
+#
+# Per Lesson #40 (hermetic green is not production-bundle green): hermetic
+# is necessary but not sufficient. The live-smoke job is the production-
+# bundle gate; if it goes red on main, the README + examples have drifted
+# from the live calc-api and need follow-up.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  hermetic:
+    name: Hermetic unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run hermetic tests
+        run: pytest -q
+
+  live-smoke:
+    name: Live calc-api smoke
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: hermetic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run live smoke
+        env:
+          CLAWDOG_KIT_RUN_LIVE_SMOKE: "1"
+        run: pytest -q tests/test_examples_match_live_api.py

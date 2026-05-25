@@ -1,0 +1,4 @@
+car_id,businessUsePercentage,employeeContribution,formOfFinance,leasePayments,fuelRepairsServicing,registrationInsurance,noPrivateUseReduction,acquisitionDate,acquisitionCost,openingDepreciatedValue,daysHeldInFBTYear,deemedTotal,notes
+CAR-001,80,1000,owned,,4500,1200,0,2024-04-01,35000,,366,,Modern-tier full-year owned Toyota Camry
+CAR-002,60,500,owned,,3200,900,0,2022-04-01,,22000,366,,Older Mazda 3 with explicit opening WDV
+CAR-003,100,0,leased,18000,5200,1400,0,,,,366,,Tesla Model 3 on operating lease — leased path skips deemed

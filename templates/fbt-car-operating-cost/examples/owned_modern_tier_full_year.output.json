@@ -1,0 +1,66 @@
+{
+    "taxable_value": 1909.8899999999994,
+    "trace": {
+        "applied_rate_table_uris": [
+            "urn:sbrm:rate:fbt:fy2026:deemed-depreciation-rates",
+            "urn:sbrm:rate:fbt:fy2026:benchmark-interest",
+            "urn:sbrm:rate:fbt:fy2026:days-in-year",
+            "urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy"
+        ],
+        "business_use_pct": 80.0,
+        "business_use_reduction": 11639.54,
+        "deemed_depreciation": 6580.48,
+        "deemed_dispatch": "computed_chained",
+        "deemed_interest": 2268.95,
+        "deemed_total": 8849.43,
+        "employee_contribution": 1000.0,
+        "form_of_finance": "owned",
+        "fuel_repairs_servicing": 4500.0,
+        "lease_payments": 0,
+        "no_private_use_reduction": 0,
+        "registration_insurance": 1200.0,
+        "total_after_npur": 14549.43,
+        "tv_before_operating": 2909.8899999999994,
+        "tv_final": 1909.8899999999994,
+        "tv_net_pre_clamp": 1909.8899999999994
+    },
+    "manifest": {
+        "rate_table_uris": [
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:deemed-depreciation-rates",
+                "content_hash": "4d3a9e54d740de8df7961758d8f588cf76d3a37a638075b82b2811ddb3ad95df",
+                "hash_algorithm": "sha256"
+            },
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:benchmark-interest",
+                "content_hash": "1f9b83a89e9dd8a2b0c5484063818f9a8f1380be231d073c412382b99896580c",
+                "hash_algorithm": "sha256"
+            },
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:days-in-year",
+                "content_hash": "1786274a6a9dd3cc9a9edb2092f071bc2dd042c369a98603867036c74b4cfc87",
+                "hash_algorithm": "sha256"
+            },
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy",
+                "content_hash": "8f63d3bd1685acca00717d88cc262c79c731286cfc98a19bdb6c1b2648c8baca",
+                "hash_algorithm": "sha256"
+            }
+        ]
+    },
+    "advisory": {
+        "disclaimer": "This is calculator output, not advice. Consult a registered tax agent before relying on these numbers for any return, position, or advice provided to a third party. Calculator outputs reflect the period-scoped statutory rate-tables cited in the manifest block; statute may have changed since the rate-table was last anchored. Statutory framing: TAA 1953 s284-15 (false or misleading statements; penalty bands escalate with culpability) and the Tax Agent Services Act 2009 (registered-agent requirement).",
+        "registered_agent_required": true,
+        "statutory_basis": [
+            {
+                "statute": "TAA 1953",
+                "section": "s284-15"
+            },
+            {
+                "statute": "Tax Agent Services Act 2009",
+                "section": "s50-5"
+            }
+        ],
+        "jurisdiction": "AU"
+    }
+}

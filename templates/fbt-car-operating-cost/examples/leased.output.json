@@ -1,0 +1,40 @@
+{
+    "taxable_value": 0.0,
+    "trace": {
+        "applied_rate_table_uris": [],
+        "business_use_pct": 100.0,
+        "business_use_reduction": 24600,
+        "deemed_depreciation": null,
+        "deemed_dispatch": "skipped_leased",
+        "deemed_interest": null,
+        "deemed_total": 0,
+        "employee_contribution": 0.0,
+        "form_of_finance": "leased",
+        "fuel_repairs_servicing": 5200.0,
+        "lease_payments": 18000.0,
+        "no_private_use_reduction": 0,
+        "registration_insurance": 1400.0,
+        "total_after_npur": 24600.0,
+        "tv_before_operating": 0.0,
+        "tv_final": 0.0,
+        "tv_net_pre_clamp": 0.0
+    },
+    "manifest": {
+        "rate_table_uris": []
+    },
+    "advisory": {
+        "disclaimer": "This is calculator output, not advice. Consult a registered tax agent before relying on these numbers for any return, position, or advice provided to a third party. Calculator outputs reflect the period-scoped statutory rate-tables cited in the manifest block; statute may have changed since the rate-table was last anchored. Statutory framing: TAA 1953 s284-15 (false or misleading statements; penalty bands escalate with culpability) and the Tax Agent Services Act 2009 (registered-agent requirement).",
+        "registered_agent_required": true,
+        "statutory_basis": [
+            {
+                "statute": "TAA 1953",
+                "section": "s284-15"
+            },
+            {
+                "statute": "Tax Agent Services Act 2009",
+                "section": "s50-5"
+            }
+        ],
+        "jurisdiction": "AU"
+    }
+}
