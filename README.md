@@ -60,6 +60,11 @@ python3 scripts/post_csv_to_calc.py \
 
 The script reads a CSV, validates header names against the schema documented in `templates/fbt-car-operating-cost/README.md`, POSTs each row to the live API, and writes a per-row response JSON next to the CSV.
 
+Each row must have a unique output filename. The script uses the first non-empty
+`car_id`, `asset_id` or `row_id`, falling back to `row1`, `row2`, and so on. If two
+rows would write to the same file, it reports both row numbers and exits with code
+2 before making requests or writing files. This check also runs with `--dry-run`.
+
 ---
 
 ## Quickstart (for agents)

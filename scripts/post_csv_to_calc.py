@@ -152,6 +152,11 @@ def _row_to_payload(row: dict[str, str]) -> dict[str, Any]:
     return payload
 
 
+def _row_id(row: dict[str, str], index: int) -> str:
+    """Choose the identifier used in the response filename."""
+    return row.get("car_id") or row.get("asset_id") or row.get("row_id") or f"row{index}"
+
+
 def _build_endpoint(calc_alias: str, period_alias: str) -> tuple[str, str]:
     """Resolve --calculator/--period aliases to encoded URIs + the full URL."""
     calc_uri = CALC_URI_MAP.get(calc_alias)
@@ -260,8 +265,6 @@ def main(argv: list[str] | None = None) -> int:
     url = _build_url(args.api_base, calc_uri, period_uri)
 
     out_dir = args.output_dir if args.output_dir else args.input.parent
-    if not args.dry_run:
-        out_dir.mkdir(parents=True, exist_ok=True)
 
     failures = 0
     rows_processed = 0
@@ -272,13 +275,27 @@ def main(argv: list[str] | None = None) -> int:
         if reader.fieldnames is None:
             print(f"ERROR: CSV has no header row: {args.input}", file=sys.stderr)
             return 2
+
+        # Check all destinations before making requests or writing any responses.
+        destinations: dict[Path, int] = {}
         for idx, row in enumerate(reader, start=1):
-            row_id = (
-                row.get("car_id")
-                or row.get("asset_id")
-                or row.get("row_id")
-                or f"row{idx}"
-            )
+            destination = (out_dir / f"{_row_id(row, idx)}.response.json").resolve()
+            if destination in destinations:
+                print(
+                    f"ERROR: CSV rows {destinations[destination]} and {idx} share "
+                    f"the output file {destination}. Use unique row identifiers.",
+                    file=sys.stderr,
+                )
+                return 2
+            destinations[destination] = idx
+
+        # Read again so large CSV files do not need to be held in memory.
+        fh.seek(0)
+        reader = csv.DictReader(fh)
+        if not args.dry_run:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        for idx, row in enumerate(reader, start=1):
+            row_id = _row_id(row, idx)
             payload = _row_to_payload(row)
 
             if args.dry_run:
