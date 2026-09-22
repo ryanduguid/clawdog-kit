@@ -63,7 +63,9 @@ The script reads a CSV, validates header names against the schema documented in 
 Each row must have a unique output filename. The script uses the first non-empty
 `car_id`, `asset_id` or `row_id`, falling back to `row1`, `row2`, and so on. If two
 rows would write to the same file, it reports both row numbers and exits with code
-2 before making requests or writing files. This check also runs with `--dry-run`.
+2 before making requests or writing files. Names that differ only in letter case
+count as the same file, and an identifier that would write outside the output
+directory is rejected the same way. This check also runs with `--dry-run`.
 
 ---
 

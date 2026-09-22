@@ -277,17 +277,27 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
         # Check all destinations before making requests or writing any responses.
-        destinations: dict[Path, int] = {}
+        root = out_dir.resolve()
+        destinations: dict[str, int] = {}
         for idx, row in enumerate(reader, start=1):
-            destination = (out_dir / f"{_row_id(row, idx)}.response.json").resolve()
-            if destination in destinations:
+            destination = (root / f"{_row_id(row, idx)}.response.json").resolve()
+            if not destination.is_relative_to(root):
                 print(
-                    f"ERROR: CSV rows {destinations[destination]} and {idx} share "
+                    f"ERROR: CSV row {idx} would write outside the output directory "
+                    f"({destination}). Use a plain row identifier.",
+                    file=sys.stderr,
+                )
+                return 2
+            # Case-insensitive file systems (Windows, macOS) treat Car1 and car1 as one file.
+            key = str(destination).casefold()
+            if key in destinations:
+                print(
+                    f"ERROR: CSV rows {destinations[key]} and {idx} share "
                     f"the output file {destination}. Use unique row identifiers.",
                     file=sys.stderr,
                 )
                 return 2
-            destinations[destination] = idx
+            destinations[key] = idx
 
         # Read again so large CSV files do not need to be held in memory.
         fh.seek(0)

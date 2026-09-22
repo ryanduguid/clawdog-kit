@@ -58,6 +58,7 @@ def arguments(source: Path, output: Path) -> list[str]:
         [{}, {"car_id": "row1"}],
         [{"car_id": "row2"}, {}],
         [{"car_id": "car1"}, {"car_id": "./car1"}],
+        [{"car_id": "Car1"}, {"car_id": "car1"}],
     ],
 )
 def test_duplicate_outputs_fail_before_processing(
@@ -83,6 +84,22 @@ def test_duplicate_outputs_fail_before_processing(
     assert "output file" in captured.err
     assert "unique" in captured.err
     assert not captured.out
+
+
+@pytest.mark.parametrize("identifier", ["../escaped", "nested/../../escaped"])
+def test_identifier_outside_output_directory_fails(tmp_path, monkeypatch, capsys, identifier):
+    source = tmp_path / "input.csv"
+    output = tmp_path / "responses"
+    write_csv(source, [{"car_id": identifier}])
+    post = Mock(return_value=(200, {"taxable_value": 20}))
+    monkeypatch.setattr(post_csv_to_calc, "_post_json", post)
+
+    assert post_csv_to_calc.main(arguments(source, output)) == 2
+
+    post.assert_not_called()
+    assert not output.exists()
+    assert not (tmp_path / "escaped.response.json").exists()
+    assert "outside the output directory" in capsys.readouterr().err
 
 
 def test_late_duplicate_preserves_existing_output(tmp_path, monkeypatch, capsys):
