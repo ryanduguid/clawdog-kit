@@ -18,7 +18,7 @@ Exit codes:
     0  all rows succeeded (HTTP 200)
     1  one or more rows failed (HTTP 4xx/5xx); per-row .response.json
        files still written so you can inspect what came back
-    2  malformed CSV, invalid row values or invalid arguments
+    2  malformed CSV, invalid row values/arguments or local input/output failure
     3  network failure (timeout, DNS failure, TLS error) — distinct from
        a structured 5xx so retry-loops can distinguish
 
@@ -40,10 +40,12 @@ Or for one-off testing without writing files anywhere:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import json
 import math
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -174,6 +176,24 @@ def _output_filename(row_id: str) -> str:
     return filename
 
 
+def _save_response(path: Path, envelope: dict[str, Any]) -> None:
+    """Replace an earlier response only after the new response is fully written."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=".clawdog-", suffix=".tmp", delete=False,
+        ) as fh:
+            temporary = Path(fh.name)
+            json.dump(envelope, fh, indent=2)
+        temporary.replace(path)
+    except BaseException:
+        if temporary is not None:
+            with contextlib.suppress(OSError):
+                temporary.unlink(missing_ok=True)
+        raise
+
+
 def _build_endpoint(calc_alias: str, period_alias: str) -> tuple[str, str]:
     """Resolve --calculator/--period aliases to encoded URIs + the full URL."""
     calc_uri = CALC_URI_MAP.get(calc_alias)
@@ -270,7 +290,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Per-request timeout in seconds (default: 60).")
     args = parser.parse_args(argv)
 
-    if not args.input.is_file():
+    try:
+        input_exists = args.input.is_file()
+    except OSError as exc:
+        print(f"ERROR: cannot inspect input CSV: {exc}", file=sys.stderr)
+        return 2
+    if not input_exists:
         print(f"ERROR: input CSV not found: {args.input}", file=sys.stderr)
         return 2
 
@@ -283,7 +308,11 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = args.output_dir if args.output_dir else args.input.parent
     if not args.dry_run:
-        out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print(f"ERROR: cannot create output directory: {exc}", file=sys.stderr)
+            return 2
 
     failures = 0
     rows_processed = 0
@@ -348,7 +377,15 @@ def main(argv: list[str] | None = None) -> int:
                     "response_status": status,
                     "response_body": body,
                 }
-                out_path.write_text(json.dumps(envelope, indent=2), encoding="utf-8")
+                try:
+                    _save_response(out_path, envelope)
+                except OSError as exc:
+                    print(
+                        f"ERROR: row {idx} response received but could not be saved: {exc}. "
+                        "Earlier rows may already have been processed; check them before retrying.",
+                        file=sys.stderr,
+                    )
+                    return 2
 
                 if 200 <= status < 300:
                     taxable = (
@@ -378,6 +415,9 @@ def main(argv: list[str] | None = None) -> int:
 
     except csv.Error as exc:
         print(f"ERROR: malformed CSV: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, UnicodeError) as exc:
+        print(f"ERROR: cannot read input CSV: {exc}", file=sys.stderr)
         return 2
 
     print()

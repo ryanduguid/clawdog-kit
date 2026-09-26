@@ -47,7 +47,7 @@ curl -sS -X POST -H 'Content-Type: application/json' \
   'https://fbt-calculator-api-8340695160.australia-southeast1.run.app/v1/calculators/urn%3Asbrm%3Acalculator%3Afbt%3Acar-operating-cost/urn%3Asbrm%3Aperiod%3Afbt%3Afy2026'
 ```
 
-Expected output is in [`templates/fbt-car-operating-cost/examples/owned_modern_tier_full_year.output.json`](templates/fbt-car-operating-cost/examples/owned_modern_tier_full_year.output.json) — `taxable_value` should be `1909.89` AUD.
+The [expected response](templates/fbt-car-operating-cost/examples/owned_modern_tier_full_year.output.json) has a `taxable_value` of `"1905.05"` AUD.
 
 **To run from CSV:**
 
@@ -59,6 +59,8 @@ python3 scripts/post_csv_to_calc.py \
 ```
 
 The script rejects duplicate headers, rows with the wrong number of cells, invalid numeric values and unsafe or repeated output identifiers. It converts known fields, forwards unknown fields to the API for validation, and writes each response next to the CSV. An invalid later row stops processing with exit code 2; earlier responses remain available.
+
+Local read or save failures also return exit code 2. If a response arrives but cannot be saved, the script stops and reports that distinction. Check processed rows before retrying. An existing response file is replaced only after the new response is fully written.
 
 ---
 

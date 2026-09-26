@@ -72,7 +72,7 @@ Per the calculator's input schema. For `urn:sbrm:calculator:fbt:car-operating-co
   "registrationInsurance": 1200,
   "acquisitionDate": "2024-04-01",
   "acquisitionCost": 35000,
-  "daysHeldInFBTYear": 366
+  "daysHeldInFBTYear": 365
 }
 ```
 
@@ -86,10 +86,10 @@ The full per-field semantics — including the mutually-exclusive `acquisitionCo
 
 ```json
 {
-  "taxable_value": 1909.89,
+  "taxable_value": "1905.05",
   "trace": {
     "applied_rate_table_uris": [...],
-    "business_use_pct": 80.0,
+    "business_use_pct": "80",
     "deemed_dispatch": "computed_chained",
     "...": "..."
   },
@@ -107,6 +107,8 @@ The full per-field semantics — including the mutually-exclusive `acquisitionCo
 }
 ```
 
+The live API returns monetary amounts as decimal strings. Preserve those strings in saved JSON; use decimal arithmetic for comparisons or totals.
+
 **Load-bearing fields you must surface to the human:**
 
 - `taxable_value` — the headline number, in AUD.
@@ -114,7 +116,7 @@ The full per-field semantics — including the mutually-exclusive `acquisitionCo
 - `manifest.rate_table_uris[]` — every statutory rate-table the engine consulted, with sha256 content_hashes. This is the provenance trail. Present it; do not hide it.
 - `advisory.disclaimer` — the registered-agent / TAA 1953 disclaimer. Present it verbatim; do not paraphrase. It is statutory framing, not boilerplate.
 
-**Other `trace` fields:** present them if asked, or include them in a "show details" / "show working" section. Do not summarise them in a way that loses precision (e.g. don't round `business_use_reduction: 11639.54` to `~$11,640` in a primary result line; the human may need to reconcile against another tool that uses the precise figure).
+**Other `trace` fields:** present them if asked, or include them in a "show details" / "show working" section. Do not summarise them in a way that loses precision (e.g. don't round `business_use_reduction: 11620.20` to `~$11,620` in a primary result line; the human may need to reconcile against another tool that uses the precise figure).
 
 ### Response shape (HTTP 422 — validation error)
 
@@ -223,8 +225,8 @@ Common cases:
 
 When presenting results to humans:
 
-- **Lead with the headline number.** *"The fringe-benefits taxable value for this car is **AUD 1,909.89**."*
-- **Then the engine path.** *"The engine used the OT #81 chained-DV path (`deemed_dispatch: computed_chained`) — chained diminishing-value walk from your acquisition cost of $35,000 on 1 April 2024 through 4 FBT years."*
+- **Lead with the headline number.** *"The fringe-benefits taxable value for this car is **AUD 1,905.05**."*
+- **Then the engine path.** *"The engine carried forward the $35,000 acquisition cost from 1 April 2024 to 1 April 2025, then calculated the FY2026 deemed amounts (`deemed_dispatch: computed_chained`)."*
 - **Then the working.** Surface `business_use_reduction`, `deemed_total`, `tv_before_operating`, `tv_final`. Use the same field names the API uses; the human's tax agent will want to reconcile against them.
 - **Then the provenance.** List the 4 rate-table URIs with their sha256 hashes. *"These results are calculated against the FBT FY2026 rate-tables anchored at sha256 4d3a9e54..., 1f9b83a8..., 1786274a..., 8f63d3bd..."*
 - **Always finish with the advisory.** Verbatim from the response.

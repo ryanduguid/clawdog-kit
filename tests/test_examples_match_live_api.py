@@ -23,6 +23,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -76,7 +77,10 @@ def test_example_matches_live_api(input_path: Path, expected_output_path: Path) 
     assert actual_tv is not None, f"response missing taxable_value: {body!r}"
     assert expected_tv is not None, f"fixture missing taxable_value: {expected!r}"
 
-    assert abs(actual_tv - expected_tv) < 0.01, (
+    actual_amount = Decimal(str(actual_tv))
+    expected_amount = Decimal(str(expected_tv))
+    assert actual_amount.is_finite() and expected_amount.is_finite()
+    assert abs(actual_amount - expected_amount) < Decimal("0.01"), (
         f"taxable_value drift for {input_path.name}: "
         f"expected ~{expected_tv}, got {actual_tv}"
     )

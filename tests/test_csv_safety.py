@@ -69,3 +69,61 @@ def test_preserves_valid_response_identifiers(tmp_path, monkeypatch, row_id):
     ]) == 0
     saved = json.loads((tmp_path / f"{row_id}.response.json").read_text(encoding="utf-8"))
     assert saved["row_id"] == row_id
+
+
+def test_stops_after_received_response_cannot_be_saved(tmp_path, monkeypatch, capsys):
+    source = tmp_path / "input.csv"
+    source.write_text("car_id,businessUsePercentage\nCAR,80\nNEXT,20\n", encoding="utf-8")
+    previous = tmp_path / "CAR.response.json"
+    previous.write_text("preserve earlier run", encoding="utf-8")
+    posted = []
+
+    def post(*args, **kwargs):
+        posted.append(args)
+        return 200, {"taxable_value": 0}
+
+    def fail_replace(*args, **kwargs):
+        raise PermissionError("fabricated save failure")
+
+    monkeypatch.setattr(post_csv_to_calc, "_post_json", post)
+    monkeypatch.setattr(post_csv_to_calc.Path, "replace", fail_replace)
+    assert post_csv_to_calc.main([
+        "--calculator", "fbt-car-operating-cost", "--period", "fy2026",
+        "--input", str(source), "--api-base", "https://example.invalid",
+    ]) == 2
+    assert len(posted) == 1
+    assert previous.read_text(encoding="utf-8") == "preserve earlier run"
+    assert "response received" in capsys.readouterr().err
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["CAR.response.json", "input.csv"]
+
+
+def test_output_directory_failure_prevents_posts(tmp_path, monkeypatch):
+    source = tmp_path / "input.csv"
+    source.write_text("businessUsePercentage\n80\n", encoding="utf-8")
+
+    def fail_mkdir(*args, **kwargs):
+        raise PermissionError("fabricated directory failure")
+
+    def unexpected_post(*args, **kwargs):
+        pytest.fail("Output directory failure must precede the POST")
+
+    monkeypatch.setattr(post_csv_to_calc.Path, "mkdir", fail_mkdir)
+    monkeypatch.setattr(post_csv_to_calc, "_post_json", unexpected_post)
+    assert post_csv_to_calc.main([
+        "--calculator", "fbt-car-operating-cost", "--period", "fy2026",
+        "--input", str(source), "--output-dir", str(tmp_path / "out"),
+        "--api-base", "https://example.invalid",
+    ]) == 2
+
+
+def test_input_probe_failure_returns_local_error(tmp_path, monkeypatch, capsys):
+    def fail_probe(*args, **kwargs):
+        raise PermissionError("fabricated inspection failure")
+
+    monkeypatch.setattr(post_csv_to_calc.Path, "is_file", fail_probe)
+    assert post_csv_to_calc.main([
+        "--calculator", "fbt-car-operating-cost", "--period", "fy2026",
+        "--input", str(tmp_path / "input.csv"),
+        "--api-base", "https://example.invalid",
+    ]) == 2
+    assert "cannot inspect input CSV" in capsys.readouterr().err
