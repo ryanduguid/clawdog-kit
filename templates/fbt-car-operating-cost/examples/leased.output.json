@@ -1,26 +1,37 @@
 {
-    "taxable_value": 0.0,
+    "taxable_value": "0.00",
     "trace": {
         "applied_rate_table_uris": [],
-        "business_use_pct": 100.0,
-        "business_use_reduction": 24600,
+        "business_use_pct": "100",
+        "business_use_reduction": "24600.00",
         "deemed_depreciation": null,
         "deemed_dispatch": "skipped_leased",
         "deemed_interest": null,
-        "deemed_total": 0,
-        "employee_contribution": 0.0,
+        "deemed_total": "0.00",
+        "employee_contribution": "0.00",
         "form_of_finance": "leased",
-        "fuel_repairs_servicing": 5200.0,
-        "lease_payments": 18000.0,
-        "no_private_use_reduction": 0,
-        "registration_insurance": 1400.0,
-        "total_after_npur": 24600.0,
-        "tv_before_operating": 0.0,
-        "tv_final": 0.0,
-        "tv_net_pre_clamp": 0.0
+        "fuel_repairs_servicing": "5200.00",
+        "lease_payments": "18000.00",
+        "no_private_use_reduction": "0.00",
+        "registration_insurance": "1400.00",
+        "total_after_npur": "24600.00",
+        "tv_before_operating": "0.00",
+        "tv_final": "0.00",
+        "tv_net_pre_clamp": "0.00"
     },
     "manifest": {
-        "rate_table_uris": []
+        "rate_table_uris": [
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:gross-up-type-2",
+                "content_hash": "18a4f0ebca4a1a6dd92c8e768b9bd3286e864fde3a5d909afb2eb3198a252236",
+                "hash_algorithm": "sha256"
+            },
+            {
+                "uri": "urn:sbrm:rate:fbt:fy2026:fbt-rate",
+                "content_hash": "099d493830393cd1d4e7dcb09831b4b03c8f5fa3ba8e4612efa7f6dc49826c74",
+                "hash_algorithm": "sha256"
+            }
+        ]
     },
     "advisory": {
         "disclaimer": "This is calculator output, not advice. Consult a registered tax agent before relying on these numbers for any return, position, or advice provided to a third party. Calculator outputs reflect the period-scoped statutory rate-tables cited in the manifest block; statute may have changed since the rate-table was last anchored. Statutory framing: TAA 1953 s284-15 (false or misleading statements; penalty bands escalate with culpability) and the Tax Agent Services Act 2009 (registered-agent requirement).",
@@ -36,5 +47,30 @@
             }
         ],
         "jurisdiction": "AU"
-    }
+    },
+    "fbt_type": "Type 2",
+    "gross_up_factor": "1.8868",
+    "grossed_up_taxable_value": "0.00",
+    "fbt_payable": "0.00",
+    "rfba_notional_taxable_value": null,
+    "rfba_notional_grossed_up_t2": null,
+    "business_use_percentage_clamped": "100",
+    "business_use_reduction": "24600.00",
+    "counts_towards_fbt_cap": true,
+    "deemed_total": "0.00",
+    "employee_contribution": "0.00",
+    "exempt_under": null,
+    "exemption_provenance": null,
+    "form_of_finance": "leased",
+    "nil_cost_guard_triggered": false,
+    "no_private_use_reduction": "0.00",
+    "operating_expenses_total": "24600.00",
+    "rate_uris_consumed": [
+        "urn:sbrm:rate:fbt:fy2026:gross-up-type-2",
+        "urn:sbrm:rate:fbt:fy2026:fbt-rate"
+    ],
+    "s8a_inputs": "none",
+    "taxable_value_before_operating": "0.00",
+    "taxable_value_net_operating_pre_clamp": "0.00",
+    "verification_required": null
 }

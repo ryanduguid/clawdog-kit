@@ -23,6 +23,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -76,18 +77,21 @@ def test_example_matches_live_api(input_path: Path, expected_output_path: Path) 
     assert actual_tv is not None, f"response missing taxable_value: {body!r}"
     assert expected_tv is not None, f"fixture missing taxable_value: {expected!r}"
 
-    assert abs(actual_tv - expected_tv) < 0.01, (
+    actual_amount = Decimal(str(actual_tv))
+    expected_amount = Decimal(str(expected_tv))
+    assert actual_amount.is_finite() and expected_amount.is_finite()
+    assert abs(actual_amount - expected_amount) < Decimal("0.01"), (
         f"taxable_value drift for {input_path.name}: "
         f"expected ~{expected_tv}, got {actual_tv}"
     )
 
-    # Defence-in-depth: the manifest block must carry at least one URI for
-    # any computed result. For the leased path, an empty list is allowed
-    # (the engine skipped deemed amounts; no rate-tables applied).
+    # Every captured example reports rate provenance, including the leased path's
+    # gross-up and FBT-rate entries.
     manifest = body.get("manifest")
     assert isinstance(manifest, dict), f"missing manifest block: {body!r}"
     rate_uris = manifest.get("rate_table_uris", [])
     assert isinstance(rate_uris, list), f"manifest.rate_table_uris not a list: {manifest!r}"
+    assert rate_uris, f"manifest has no rate provenance: {manifest!r}"
 
     # Defence-in-depth: every URI carries sha256 content_hash, per the
     # provenance discipline. If any URI in the list lacks sha256, that's a

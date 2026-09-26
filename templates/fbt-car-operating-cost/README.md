@@ -27,7 +27,7 @@ One row of `template.csv` = one car's FBT input. The reference script (`scripts/
 | `acquisitionDate` | conditional | ISO date (`YYYY-MM-DD`) | When the car was first held. Drives deemed-depreciation-tier dispatch (modern / middle / old). Required when using `acquisitionCost`. |
 | `acquisitionCost` | conditional | number ≥ 0 | Original acquisition cost (AUD). Mutually exclusive with `openingDepreciatedValue`. When supplied with `acquisitionDate`, the engine chained-walks DV across each intervening FBT year (`deemed_dispatch=computed_chained`). |
 | `openingDepreciatedValue` | conditional | number ≥ 0 | Opening DV at start of FBT year (AUD). Mutually exclusive with `acquisitionCost`. Used when the human already knows the DV and doesn't want the engine to compute it from acquisition cost (`deemed_dispatch=computed`). |
-| `daysHeldInFBTYear` | recommended | integer 1–366 | Days the car was held in the FBT year (FY2026: 366 days; leap year). |
+| `daysHeldInFBTYear` | recommended | integer 1–366 | Days the car was held in the FBT year (FY2026: 365 days). |
 | `deemedTotal` | optional | number ≥ 0 | Override the engine's computed deemed total. Leave blank to let the engine compute. |
 | `notes` | optional | free text | Your notes. NOT sent to the API. |
 
@@ -52,17 +52,19 @@ For `leased`, **neither** is used — the engine takes `leasePayments` directly.
 
 Each example below is a complete input/output pair captured against the live calc-api. Use them to verify your wiring before trusting any of your own computed numbers.
 
+The outputs were refreshed on 27 September 2026. The FBT year runs from 1 April 2025 to 31 March 2026, a 365-day period. The examples use the ATO's [25% deemed depreciation rate and 8.62% benchmark interest rate for the year ending 31 March 2026](https://www.ato.gov.au/tax-rates-and-codes/fringe-benefits-tax-rates-and-thresholds).
+
 ### Example 1 — Owned, modern tier, full year (OT #81 chained-DV path)
 
 - Input: [`examples/owned_modern_tier_full_year.input.json`](examples/owned_modern_tier_full_year.input.json)
 - Output: [`examples/owned_modern_tier_full_year.output.json`](examples/owned_modern_tier_full_year.output.json)
 
-Acquisition cost $35,000 on 2024-04-01; held the full FBT year (366 days, leap year); 80% business use; $1,000 employee contribution; $4,500 fuel/repairs/servicing; $1,200 rego/insurance.
+Acquisition cost $35,000 on 2024-04-01; held the full FBT year (365 days); 80% business use; $1,000 employee contribution; $4,500 fuel/repairs/servicing; $1,200 rego/insurance.
 
-**Expected headline:** `taxable_value: 1909.89` (AUD).
+**Expected headline:** `taxable_value: "1905.05"` (AUD).
 **Expected dispatch:** `deemed_dispatch: "computed_chained"`.
 
-Compute by hand to sanity-check: deemed total $8,849.43 + ops $5,700 = $14,549.43; business-use reduction 80% × $14,549.43 = $11,639.54; TV before operating $2,909.89; minus $1,000 employee contribution = $1,909.89. Matches.
+Compute by hand to sanity-check: deemed total $8,825.25 + ops $5,700 = $14,525.25; business-use reduction 80% × $14,525.25 = $11,620.20; TV before operating $2,905.05; minus $1,000 employee contribution = $1,905.05. Matches.
 
 ### Example 2 — Owned, explicit OpeningWDV (legacy path)
 
@@ -71,7 +73,7 @@ Compute by hand to sanity-check: deemed total $8,849.43 + ops $5,700 = $14,549.4
 
 `openingDepreciatedValue: 22000` from a 2022-04-01 acquisition; 60% business use; $500 employee contribution.
 
-**Expected headline:** `taxable_value: 4106.67` (AUD).
+**Expected headline:** `taxable_value: "4098.56"` (AUD).
 **Expected dispatch:** `deemed_dispatch: "computed"`.
 
 ### Example 3 — Leased (deemed amounts skipped)
@@ -81,7 +83,7 @@ Compute by hand to sanity-check: deemed total $8,849.43 + ops $5,700 = $14,549.4
 
 `formOfFinance: "leased"`; `leasePayments: 18000`; 100% business use.
 
-**Expected headline:** `taxable_value: 0.00` (AUD).
+**Expected headline:** `taxable_value: "0.00"` (AUD).
 **Expected dispatch:** `deemed_dispatch: "skipped_leased"`.
 
 Sanity check: ops = $18,000 + $5,200 + $1,400 = $24,600; business-use reduction at 100% = $24,600; net = 0. Matches.
@@ -110,7 +112,7 @@ python3 scripts/post_csv_to_calc.py \
   --output-dir _runs/fbt-fy2026/
 ```
 
-The script writes one JSON file per row, named `<car_id>.response.json`, into `--output-dir` (gitignored by default).
+The script writes one JSON file per row, named `<car_id>.response.json`, into `--output-dir` (gitignored by default). Identifiers must be unique without regard to case and must not contain `/`, `\` or `:`. Invalid rows stop processing with exit code 2; earlier responses remain available.
 
 ---
 

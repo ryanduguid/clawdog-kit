@@ -1,5 +1,5 @@
 {
-    "taxable_value": 1909.8899999999994,
+    "taxable_value": "1905.05",
     "trace": {
         "applied_rate_table_uris": [
             "urn:sbrm:rate:fbt:fy2026:deemed-depreciation-rates",
@@ -7,22 +7,22 @@
             "urn:sbrm:rate:fbt:fy2026:days-in-year",
             "urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy"
         ],
-        "business_use_pct": 80.0,
-        "business_use_reduction": 11639.54,
-        "deemed_depreciation": 6580.48,
+        "business_use_pct": "80",
+        "business_use_reduction": "11620.20",
+        "deemed_depreciation": "6562.50",
         "deemed_dispatch": "computed_chained",
-        "deemed_interest": 2268.95,
-        "deemed_total": 8849.43,
-        "employee_contribution": 1000.0,
+        "deemed_interest": "2262.75",
+        "deemed_total": "8825.25",
+        "employee_contribution": "1000.00",
         "form_of_finance": "owned",
-        "fuel_repairs_servicing": 4500.0,
-        "lease_payments": 0,
-        "no_private_use_reduction": 0,
-        "registration_insurance": 1200.0,
-        "total_after_npur": 14549.43,
-        "tv_before_operating": 2909.8899999999994,
-        "tv_final": 1909.8899999999994,
-        "tv_net_pre_clamp": 1909.8899999999994
+        "fuel_repairs_servicing": "4500.00",
+        "lease_payments": "0.00",
+        "no_private_use_reduction": "0.00",
+        "registration_insurance": "1200.00",
+        "total_after_npur": "14525.25",
+        "tv_before_operating": "2905.05",
+        "tv_final": "1905.05",
+        "tv_net_pre_clamp": "1905.05"
     },
     "manifest": {
         "rate_table_uris": [
@@ -62,5 +62,34 @@
             }
         ],
         "jurisdiction": "AU"
-    }
+    },
+    "fbt_type": "Type 2",
+    "gross_up_factor": "1.8868",
+    "grossed_up_taxable_value": "3594.45",
+    "fbt_payable": "1689.39",
+    "rfba_notional_taxable_value": null,
+    "rfba_notional_grossed_up_t2": null,
+    "business_use_percentage_clamped": "80",
+    "business_use_reduction": "11620.20",
+    "counts_towards_fbt_cap": true,
+    "deemed_total": "8825.25",
+    "employee_contribution": "1000.00",
+    "exempt_under": null,
+    "exemption_provenance": null,
+    "form_of_finance": "owned",
+    "nil_cost_guard_triggered": false,
+    "no_private_use_reduction": "0.00",
+    "operating_expenses_total": "14525.25",
+    "rate_uris_consumed": [
+        "urn:sbrm:rate:fbt:fy2026:deemed-depreciation-rates",
+        "urn:sbrm:rate:fbt:fy2026:benchmark-interest",
+        "urn:sbrm:rate:fbt:fy2026:days-in-year",
+        "urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy",
+        "urn:sbrm:rate:fbt:fy2026:gross-up-type-2",
+        "urn:sbrm:rate:fbt:fy2026:fbt-rate"
+    ],
+    "s8a_inputs": "none",
+    "taxable_value_before_operating": "2905.05",
+    "taxable_value_net_operating_pre_clamp": "1905.05",
+    "verification_required": null
 }

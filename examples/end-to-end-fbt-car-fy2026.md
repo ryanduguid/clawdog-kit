@@ -10,7 +10,7 @@ The accountant tells their agent:
 
 > *"I need the FBT Car Operating Cost taxable values for my three cars for FY2026. Here's what I have:*
 >
-> *Car 1: 2024 Toyota Camry, bought new 1 April 2024 for $35,000. Held all year (366 days). 80% business use. Employee contributed $1,000 post-tax. $4,500 fuel/repairs/servicing, $1,200 rego/insurance.*
+> *Car 1: 2024 Toyota Camry, bought new 1 April 2024 for $35,000. Held all year (365 days). 80% business use. Employee contributed $1,000 post-tax. $4,500 fuel/repairs/servicing, $1,200 rego/insurance.*
 >
 > *Car 2: 2022 Mazda 3, opening WDV at start of FBT year is $22,000. Held all year. 60% business use. $500 employee contribution. $3,200 fuel/repairs/servicing, $900 rego/insurance.*
 >
@@ -48,9 +48,9 @@ The agent composes (or asks the human to confirm) the following CSV:
 
 ```csv
 car_id,businessUsePercentage,employeeContribution,formOfFinance,leasePayments,fuelRepairsServicing,registrationInsurance,noPrivateUseReduction,acquisitionDate,acquisitionCost,openingDepreciatedValue,daysHeldInFBTYear,deemedTotal,notes
-CAMRY-001,80,1000,owned,,4500,1200,0,2024-04-01,35000,,366,,2024 Toyota Camry
-MAZDA-002,60,500,owned,,3200,900,0,,,22000,366,,2022 Mazda 3 (opening WDV path)
-TESLA-003,100,0,leased,18000,5200,1400,0,,,,366,,Tesla Model 3 (operating lease)
+CAMRY-001,80,1000,owned,,4500,1200,0,2024-04-01,35000,,365,,2024 Toyota Camry
+MAZDA-002,60,500,owned,,3200,900,0,,,22000,365,,2022 Mazda 3 (opening WDV path)
+TESLA-003,100,0,leased,18000,5200,1400,0,,,,365,,Tesla Model 3 (operating lease)
 ```
 
 The agent saves this as `_runs/fbt-fy2026-fleet.csv` (under the gitignored `_runs/` tree).
@@ -70,9 +70,9 @@ python3 scripts/post_csv_to_calc.py \
 The agent gets (writing to stderr/stdout):
 
 ```
-  row 1 (CAMRY-001): HTTP 200  →  taxable_value=1909.89  →  _runs/fbt-fy2026/CAMRY-001.response.json
-  row 2 (MAZDA-002): HTTP 200  →  taxable_value=4106.67  →  _runs/fbt-fy2026/MAZDA-002.response.json
-  row 3 (TESLA-003): HTTP 200  →  taxable_value=0.0     →  _runs/fbt-fy2026/TESLA-003.response.json
+  row 1 (CAMRY-001): HTTP 200  →  taxable_value=1905.05  →  _runs/fbt-fy2026/CAMRY-001.response.json
+  row 2 (MAZDA-002): HTTP 200  →  taxable_value=4098.56  →  _runs/fbt-fy2026/MAZDA-002.response.json
+  row 3 (TESLA-003): HTTP 200  →  taxable_value=0.00    →  _runs/fbt-fy2026/TESLA-003.response.json
 
 Processed 3 row(s); failures=0; network_failures=0
 ```
@@ -88,28 +88,28 @@ FBT Car Operating Cost — FY2026 fleet summary
 ─────────────────────────────────────────────────────────────
 
 CAMRY-001 (2024 Toyota Camry)
-  Taxable value: AUD 1,909.89
+  Taxable value: AUD 1,905.05
   Dispatch path: computed_chained (OT #81 chained-DV walk from $35,000 acquisition on 2024-04-01)
   Working:
-    Deemed total       $8,849.43  (deemed depreciation $6,580.48 + deemed interest $2,268.95)
+    Deemed total       $8,825.25  (deemed depreciation $6,562.50 + deemed interest $2,262.75)
     Operating costs    $5,700.00  (fuel/repairs/servicing $4,500 + rego/insurance $1,200)
-    Total              $14,549.43
-    Business-use reduction  $11,639.54  (80% of total)
-    TV before contribution  $2,909.89
+    Total              $14,525.25
+    Business-use reduction  $11,620.20  (80% of total)
+    TV before contribution  $2,905.05
     Employee contribution   $1,000.00
-    Taxable value           $1,909.89
+    Taxable value           $1,905.05
 
 MAZDA-002 (2022 Mazda 3)
-  Taxable value: AUD 4,106.67
+  Taxable value: AUD 4,098.56
   Dispatch path: computed (legacy single-year path from supplied OpeningWDV $22,000)
   Working:
-    Deemed total       $7,416.67  (deemed depreciation $5,515.07 + deemed interest $1,901.60)
+    Deemed total       $7,396.40  (deemed depreciation $5,500.00 + deemed interest $1,896.40)
     Operating costs    $4,100.00
-    Total              $11,516.67
-    Business-use reduction  $6,910.00  (60% of total)
-    TV before contribution  $4,606.67
+    Total              $11,496.40
+    Business-use reduction  $6,897.84  (60% of total)
+    TV before contribution  $4,598.56
     Employee contribution   $500.00
-    Taxable value           $4,106.67
+    Taxable value           $4,098.56
 
 TESLA-003 (Tesla Model 3 — operating lease)
   Taxable value: AUD 0.00
@@ -122,7 +122,7 @@ TESLA-003 (Tesla Model 3 — operating lease)
     Taxable value           $0.00
 
 ─────────────────────────────────────────────────────────────
-Fleet total: AUD 6,016.56
+Fleet total: AUD 6,003.61
 ```
 
 ---
@@ -139,8 +139,12 @@ Statutory rate-tables applied (per FY2026 SBRM bundle):
       sha256: 1786274a6a9dd3cc9a9edb2092f071bc2dd042c369a98603867036c74b4cfc87
   • urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy
       sha256: 8f63d3bd1685acca00717d88cc262c79c731286cfc98a19bdb6c1b2648c8baca
+  • urn:sbrm:rate:fbt:fy2026:gross-up-type-2
+      sha256: 18a4f0ebca4a1a6dd92c8e768b9bd3286e864fde3a5d909afb2eb3198a252236
+  • urn:sbrm:rate:fbt:fy2026:fbt-rate
+      sha256: 099d493830393cd1d4e7dcb09831b4b03c8f5fa3ba8e4612efa7f6dc49826c74
 
-(CAMRY-001 used all four. MAZDA-002 used the first three. TESLA-003 used none — leased path skipped deemed amounts.)
+(CAMRY-001's manifest lists the first four entries. MAZDA-002's lists the first three. TESLA-003's lists the final two: its leased path skips deemed amounts but still reports gross-up and FBT-rate provenance.)
 ```
 
 ---

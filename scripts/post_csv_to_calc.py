@@ -18,7 +18,7 @@ Exit codes:
     0  all rows succeeded (HTTP 200)
     1  one or more rows failed (HTTP 4xx/5xx); per-row .response.json
        files still written so you can inspect what came back
-    2  malformed CSV or invalid arguments (script could not start)
+    2  malformed CSV, invalid row values/arguments or local input/output failure
     3  network failure (timeout, DNS failure, TLS error) — distinct from
        a structured 5xx so retry-loops can distinguish
 
@@ -40,9 +40,12 @@ Or for one-off testing without writing files anywhere:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import json
+import math
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -78,6 +81,10 @@ RESERVED_CSV_COLUMNS: frozenset[str] = frozenset({
     "row_id",
     "notes",
     "comments",
+})
+
+WINDOWS_RESERVED_NAMES = frozenset({"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"} | {
+    prefix + digit for prefix in ("COM", "LPT") for digit in "123456789¹²³"
 })
 
 # Field-type coercion table. The CSV layer is text-only; we cast back to
@@ -126,11 +133,15 @@ def _coerce(value: str, hint: str) -> Any:
         # int values pass through as int; float otherwise. Both serialise
         # cleanly to JSON numbers.
         if "." in v or "e" in v.lower():
-            return float(v)
-        try:
-            return int(v)
-        except ValueError:
-            return float(v)
+            result = float(v)
+        else:
+            try:
+                return int(v)
+            except ValueError:
+                result = float(v)
+        if not math.isfinite(result):
+            raise ValueError("numeric fields must be finite")
+        return result
     # default: string
     return v
 
@@ -150,6 +161,37 @@ def _row_to_payload(row: dict[str, str]) -> dict[str, Any]:
             continue
         payload[key] = coerced
     return payload
+
+
+def _output_filename(row_id: str) -> str:
+    """Validate a response filename for common Windows and Unix filesystems."""
+    filename = f"{row_id}.response.json"
+    stem = filename.split(".", 1)[0].rstrip(" ").upper()
+    if (
+        any(ord(char) < 32 or char in '<>:"/\\|?*' for char in filename)
+        or stem in WINDOWS_RESERVED_NAMES
+        or len(filename.encode("utf-8")) > 255
+    ):
+        raise ValueError("identifier is not a portable response filename")
+    return filename
+
+
+def _save_response(path: Path, envelope: dict[str, Any]) -> None:
+    """Replace an earlier response only after the new response is fully written."""
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=".clawdog-", suffix=".tmp", delete=False,
+        ) as fh:
+            temporary = Path(fh.name)
+            json.dump(envelope, fh, indent=2)
+        temporary.replace(path)
+    except BaseException:
+        if temporary is not None:
+            with contextlib.suppress(OSError):
+                temporary.unlink(missing_ok=True)
+        raise
 
 
 def _build_endpoint(calc_alias: str, period_alias: str) -> tuple[str, str]:
@@ -248,7 +290,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="Per-request timeout in seconds (default: 60).")
     args = parser.parse_args(argv)
 
-    if not args.input.is_file():
+    try:
+        input_exists = args.input.is_file()
+    except OSError as exc:
+        print(f"ERROR: cannot inspect input CSV: {exc}", file=sys.stderr)
+        return 2
+    if not input_exists:
         print(f"ERROR: input CSV not found: {args.input}", file=sys.stderr)
         return 2
 
@@ -261,77 +308,117 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = args.output_dir if args.output_dir else args.input.parent
     if not args.dry_run:
-        out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            print(f"ERROR: cannot create output directory: {exc}", file=sys.stderr)
+            return 2
 
     failures = 0
     rows_processed = 0
     network_failures = 0
+    output_ids: set[str] = set()
 
-    with args.input.open(newline="", encoding="utf-8-sig") as fh:
-        reader = csv.DictReader(fh)
-        if reader.fieldnames is None:
-            print(f"ERROR: CSV has no header row: {args.input}", file=sys.stderr)
-            return 2
-        for idx, row in enumerate(reader, start=1):
-            row_id = (
-                row.get("car_id")
-                or row.get("asset_id")
-                or row.get("row_id")
-                or f"row{idx}"
-            )
-            payload = _row_to_payload(row)
-
-            if args.dry_run:
-                print(f"--- row {idx} ({row_id}) — DRY RUN ---")
-                print(f"  POST {url}")
-                print(f"  body: {json.dumps(payload, indent=2)}")
-                rows_processed += 1
-                continue
-
-            try:
-                status, body = _post_json(url, payload, timeout=args.timeout)
-            except (urllib.error.URLError, TimeoutError, OSError) as exc:
-                print(f"  row {idx} ({row_id}): NETWORK FAILURE — {exc}", file=sys.stderr)
-                network_failures += 1
-                rows_processed += 1
-                continue
-
-            out_path = out_dir / f"{row_id}.response.json"
-            envelope = {
-                "row": idx,
-                "row_id": row_id,
-                "request_url": url,
-                "request_body": payload,
-                "response_status": status,
-                "response_body": body,
-            }
-            out_path.write_text(json.dumps(envelope, indent=2), encoding="utf-8")
-
-            if 200 <= status < 300:
-                taxable = (
-                    body.get("taxable_value")
-                    if isinstance(body, dict) else None
+    try:
+        with args.input.open(newline="", encoding="utf-8-sig") as fh:
+            reader = csv.DictReader(fh, strict=True)
+            if reader.fieldnames is None:
+                print(f"ERROR: CSV has no header row: {args.input}", file=sys.stderr)
+                return 2
+            if len(set(reader.fieldnames)) != len(reader.fieldnames):
+                print("ERROR: CSV header names must be unique", file=sys.stderr)
+                return 2
+            for idx, row in enumerate(reader, start=1):
+                if None in row or any(value is None for value in row.values()):
+                    print(f"ERROR: row {idx} does not match the CSV header width", file=sys.stderr)
+                    return 2
+                row_id = (
+                    row.get("car_id")
+                    or row.get("asset_id")
+                    or row.get("row_id")
+                    or f"row{idx}"
                 )
-                print(f"  row {idx} ({row_id}): HTTP {status}  →  taxable_value={taxable}  →  {out_path}")
-            else:
-                failures += 1
-                err_summary = ""
-                if isinstance(body, dict):
-                    detail = body.get("detail")
-                    if isinstance(detail, dict):
-                        err_summary = detail.get("error") or str(detail)[:120]
-                    elif isinstance(detail, list):
-                        err_summary = "; ".join(
-                            f"{d.get('loc',[''])[-1]}:{d.get('msg','')}" for d in detail
-                        )[:160]
-                    else:
-                        err_summary = str(detail)[:120]
-                print(
-                    f"  row {idx} ({row_id}): HTTP {status}  →  {err_summary}  →  {out_path}",
-                    file=sys.stderr,
-                )
+                try:
+                    filename = _output_filename(row_id)
+                except ValueError:
+                    print(f"ERROR: row {idx} identifier is not a portable filename", file=sys.stderr)
+                    return 2
+                if row_id.casefold() in output_ids:
+                    print(f"ERROR: row {idx} repeats an output identifier", file=sys.stderr)
+                    return 2
+                output_ids.add(row_id.casefold())
+                try:
+                    payload = _row_to_payload(row)
+                except ValueError:
+                    print(f"ERROR: row {idx} contains an invalid numeric value", file=sys.stderr)
+                    return 2
 
-            rows_processed += 1
+                if args.dry_run:
+                    print(f"--- row {idx} ({row_id}) — DRY RUN ---")
+                    print(f"  POST {url}")
+                    print(f"  body: {json.dumps(payload, indent=2)}")
+                    rows_processed += 1
+                    continue
+
+                try:
+                    status, body = _post_json(url, payload, timeout=args.timeout)
+                except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                    print(f"  row {idx} ({row_id}): NETWORK FAILURE — {exc}", file=sys.stderr)
+                    network_failures += 1
+                    rows_processed += 1
+                    continue
+
+                out_path = out_dir / filename
+                envelope = {
+                    "row": idx,
+                    "row_id": row_id,
+                    "request_url": url,
+                    "request_body": payload,
+                    "response_status": status,
+                    "response_body": body,
+                }
+                try:
+                    _save_response(out_path, envelope)
+                except OSError as exc:
+                    print(
+                        f"ERROR: row {idx} response received but could not be saved: {exc}. "
+                        "Earlier rows may already have been processed; check them before retrying.",
+                        file=sys.stderr,
+                    )
+                    return 2
+
+                if 200 <= status < 300:
+                    taxable = (
+                        body.get("taxable_value")
+                        if isinstance(body, dict) else None
+                    )
+                    print(f"  row {idx} ({row_id}): HTTP {status}  →  taxable_value={taxable}  →  {out_path}")
+                else:
+                    failures += 1
+                    err_summary = ""
+                    if isinstance(body, dict):
+                        detail = body.get("detail")
+                        if isinstance(detail, dict):
+                            err_summary = detail.get("error") or str(detail)[:120]
+                        elif isinstance(detail, list):
+                            err_summary = "; ".join(
+                                f"{d.get('loc',[''])[-1]}:{d.get('msg','')}" for d in detail
+                            )[:160]
+                        else:
+                            err_summary = str(detail)[:120]
+                    print(
+                        f"  row {idx} ({row_id}): HTTP {status}  →  {err_summary}  →  {out_path}",
+                        file=sys.stderr,
+                    )
+
+                rows_processed += 1
+
+    except csv.Error as exc:
+        print(f"ERROR: malformed CSV: {exc}", file=sys.stderr)
+        return 2
+    except (OSError, UnicodeError) as exc:
+        print(f"ERROR: cannot read input CSV: {exc}", file=sys.stderr)
+        return 2
 
     print()
     print(f"Processed {rows_processed} row(s); failures={failures}; network_failures={network_failures}")

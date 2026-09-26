@@ -72,7 +72,7 @@ Per the calculator's input schema. For `urn:sbrm:calculator:fbt:car-operating-co
   "registrationInsurance": 1200,
   "acquisitionDate": "2024-04-01",
   "acquisitionCost": 35000,
-  "daysHeldInFBTYear": 366
+  "daysHeldInFBTYear": 365
 }
 ```
 
@@ -86,10 +86,10 @@ The full per-field semantics — including the mutually-exclusive `acquisitionCo
 
 ```json
 {
-  "taxable_value": 1909.89,
+  "taxable_value": "1905.05",
   "trace": {
     "applied_rate_table_uris": [...],
-    "business_use_pct": 80.0,
+    "business_use_pct": "80",
     "deemed_dispatch": "computed_chained",
     "...": "..."
   },
@@ -107,14 +107,16 @@ The full per-field semantics — including the mutually-exclusive `acquisitionCo
 }
 ```
 
+The live API returns monetary amounts as decimal strings. Preserve those strings in saved JSON; use decimal arithmetic for comparisons or totals.
+
 **Load-bearing fields you must surface to the human:**
 
 - `taxable_value` — the headline number, in AUD.
 - `trace.deemed_dispatch` — which engine path fired (`computed`, `computed_chained`, `skipped_leased`, etc.). This tells the human (and a tax agent reviewing) which statutory mechanism the engine used.
-- `manifest.rate_table_uris[]` — every statutory rate-table the engine consulted, with sha256 content_hashes. This is the provenance trail. Present it; do not hide it.
+- `manifest.rate_table_uris[]`: each rate table reported in the response manifest, with its sha256 content hash. Present every entry.
 - `advisory.disclaimer` — the registered-agent / TAA 1953 disclaimer. Present it verbatim; do not paraphrase. It is statutory framing, not boilerplate.
 
-**Other `trace` fields:** present them if asked, or include them in a "show details" / "show working" section. Do not summarise them in a way that loses precision (e.g. don't round `business_use_reduction: 11639.54` to `~$11,640` in a primary result line; the human may need to reconcile against another tool that uses the precise figure).
+**Other `trace` fields:** present them if asked, or include them in a "show details" / "show working" section. Do not summarise them in a way that loses precision (e.g. don't round `business_use_reduction: 11620.20` to `~$11,620` in a primary result line; the human may need to reconcile against another tool that uses the precise figure).
 
 ### Response shape (HTTP 422 — validation error)
 
@@ -174,7 +176,7 @@ These rules are load-bearing. Violating any of them produces tax-relevant misinf
 4. **Do not summarise away the `manifest` block.** It is the provenance trail for the rate-tables applied. If the human is using the output for a tax return, they need to know which statutory rate-tables backed the calculation, with sha256 anchors.
 5. **Do not silently retry on 422.** A 422 means the input is structurally wrong. Tell the human what's wrong; fix it together.
 6. **Do not silently retry on 500.** A 500 is a server-side or deploy-side issue. Surface it; do not loop.
-7. **Do not modify CSV column names.** The reference script reads CSVs assuming specific column names. If you change them, the script will reject the CSV. (You may add `notes` columns; the script ignores unknown columns.)
+7. **Use the documented CSV column names.** The script forwards unknown columns to the API for validation. It strips only `car_id`, `asset_id`, `row_id`, `notes` and `comments`. Headers must be unique and each row must contain the same number of cells. Output identifiers must be unique without regard to case. Use portable filenames: avoid control characters, Windows-reserved characters and device names. The identifier plus `.response.json` must fit within 255 UTF-8 bytes.
 8. **Do not present a `taxable_value` without context.** Always pair it with `deemed_dispatch`, the relevant trace fields, the `manifest` provenance, and the `advisory` block. A bare dollar amount is a number; a number with provenance is a calculation a tax agent can review.
 
 ---
@@ -223,10 +225,10 @@ Common cases:
 
 When presenting results to humans:
 
-- **Lead with the headline number.** *"The fringe-benefits taxable value for this car is **AUD 1,909.89**."*
-- **Then the engine path.** *"The engine used the OT #81 chained-DV path (`deemed_dispatch: computed_chained`) — chained diminishing-value walk from your acquisition cost of $35,000 on 1 April 2024 through 4 FBT years."*
+- **Lead with the headline number.** *"The fringe-benefits taxable value for this car is **AUD 1,905.05**."*
+- **Then the engine path.** *"The engine carried forward the $35,000 acquisition cost from 1 April 2024 to 1 April 2025, then calculated the FY2026 deemed amounts (`deemed_dispatch: computed_chained`)."*
 - **Then the working.** Surface `business_use_reduction`, `deemed_total`, `tv_before_operating`, `tv_final`. Use the same field names the API uses; the human's tax agent will want to reconcile against them.
-- **Then the provenance.** List the 4 rate-table URIs with their sha256 hashes. *"These results are calculated against the FBT FY2026 rate-tables anchored at sha256 4d3a9e54..., 1f9b83a8..., 1786274a..., 8f63d3bd..."*
+- **Then the provenance.** List every URI and sha256 hash from that response's `manifest.rate_table_uris`. The captured owned-car examples list four and three entries; the leased example lists the gross-up and FBT-rate entries. Read the actual manifest rather than assuming a fixed count.
 - **Always finish with the advisory.** Verbatim from the response.
 
 When presenting an error:
