@@ -18,7 +18,7 @@ Exit codes:
     0  all rows succeeded (HTTP 200)
     1  one or more rows failed (HTTP 4xx/5xx); per-row .response.json
        files still written so you can inspect what came back
-    2  malformed CSV or invalid arguments (script could not start)
+    2  malformed CSV, invalid row values or invalid arguments
     3  network failure (timeout, DNS failure, TLS error) — distinct from
        a structured 5xx so retry-loops can distinguish
 
@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import sys
 import urllib.error
 import urllib.parse
@@ -126,11 +127,15 @@ def _coerce(value: str, hint: str) -> Any:
         # int values pass through as int; float otherwise. Both serialise
         # cleanly to JSON numbers.
         if "." in v or "e" in v.lower():
-            return float(v)
-        try:
-            return int(v)
-        except ValueError:
-            return float(v)
+            result = float(v)
+        else:
+            try:
+                return int(v)
+            except ValueError:
+                result = float(v)
+        if not math.isfinite(result):
+            raise ValueError("numeric fields must be finite")
+        return result
     # default: string
     return v
 
@@ -266,20 +271,38 @@ def main(argv: list[str] | None = None) -> int:
     failures = 0
     rows_processed = 0
     network_failures = 0
+    output_ids: set[str] = set()
 
     with args.input.open(newline="", encoding="utf-8-sig") as fh:
         reader = csv.DictReader(fh)
         if reader.fieldnames is None:
             print(f"ERROR: CSV has no header row: {args.input}", file=sys.stderr)
             return 2
+        if len(set(reader.fieldnames)) != len(reader.fieldnames):
+            print("ERROR: CSV header names must be unique", file=sys.stderr)
+            return 2
         for idx, row in enumerate(reader, start=1):
+            if None in row or any(value is None for value in row.values()):
+                print(f"ERROR: row {idx} does not match the CSV header width", file=sys.stderr)
+                return 2
             row_id = (
                 row.get("car_id")
                 or row.get("asset_id")
                 or row.get("row_id")
                 or f"row{idx}"
             )
-            payload = _row_to_payload(row)
+            if any(char in row_id for char in "/\\:"):
+                print(f"ERROR: row {idx} identifier must be a filename, not a path", file=sys.stderr)
+                return 2
+            if row_id.casefold() in output_ids:
+                print(f"ERROR: row {idx} repeats an output identifier", file=sys.stderr)
+                return 2
+            output_ids.add(row_id.casefold())
+            try:
+                payload = _row_to_payload(row)
+            except ValueError:
+                print(f"ERROR: row {idx} contains an invalid numeric value", file=sys.stderr)
+                return 2
 
             if args.dry_run:
                 print(f"--- row {idx} ({row_id}) — DRY RUN ---")

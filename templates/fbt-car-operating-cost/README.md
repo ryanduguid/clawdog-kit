@@ -110,7 +110,7 @@ python3 scripts/post_csv_to_calc.py \
   --output-dir _runs/fbt-fy2026/
 ```
 
-The script writes one JSON file per row, named `<car_id>.response.json`, into `--output-dir` (gitignored by default).
+The script writes one JSON file per row, named `<car_id>.response.json`, into `--output-dir` (gitignored by default). Identifiers must be unique without regard to case and must not contain `/`, `\` or `:`. Invalid rows stop processing with exit code 2; earlier responses remain available.
 
 ---
 

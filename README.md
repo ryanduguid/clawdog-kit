@@ -58,7 +58,7 @@ python3 scripts/post_csv_to_calc.py \
   --input templates/fbt-car-operating-cost/sample.csv
 ```
 
-The script reads a CSV, validates header names against the schema documented in `templates/fbt-car-operating-cost/README.md`, POSTs each row to the live API, and writes a per-row response JSON next to the CSV.
+The script rejects duplicate headers, rows with the wrong number of cells, invalid numeric values and unsafe or repeated output identifiers. It converts known fields, forwards unknown fields to the API for validation, and writes each response next to the CSV. An invalid later row stops processing with exit code 2; earlier responses remain available.
 
 ---
 
