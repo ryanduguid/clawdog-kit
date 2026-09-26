@@ -174,7 +174,7 @@ These rules are load-bearing. Violating any of them produces tax-relevant misinf
 4. **Do not summarise away the `manifest` block.** It is the provenance trail for the rate-tables applied. If the human is using the output for a tax return, they need to know which statutory rate-tables backed the calculation, with sha256 anchors.
 5. **Do not silently retry on 422.** A 422 means the input is structurally wrong. Tell the human what's wrong; fix it together.
 6. **Do not silently retry on 500.** A 500 is a server-side or deploy-side issue. Surface it; do not loop.
-7. **Use the documented CSV column names.** The script forwards unknown columns to the API for validation. It strips only `car_id`, `asset_id`, `row_id`, `notes` and `comments`. Headers must be unique and each row must contain the same number of cells. Output identifiers must be unique without regard to case and must not contain `/`, `\` or `:`.
+7. **Use the documented CSV column names.** The script forwards unknown columns to the API for validation. It strips only `car_id`, `asset_id`, `row_id`, `notes` and `comments`. Headers must be unique and each row must contain the same number of cells. Output identifiers must be unique without regard to case. Use portable filenames: avoid control characters, Windows-reserved characters and device names. The identifier plus `.response.json` must fit within 255 UTF-8 bytes.
 8. **Do not present a `taxable_value` without context.** Always pair it with `deemed_dispatch`, the relevant trace fields, the `manifest` provenance, and the `advisory` block. A bare dollar amount is a number; a number with provenance is a calculation a tax agent can review.
 
 ---
