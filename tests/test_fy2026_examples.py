@@ -36,5 +36,4 @@ def test_walkthrough_lists_every_manifest_entry():
     for path in (TEMPLATE / "examples").glob("*.output.json"):
         response = json.loads(path.read_text(encoding="utf-8"))
         for entry in response["manifest"]["rate_table_uris"]:
-            assert entry["uri"] in walkthrough
-            assert entry["content_hash"] in walkthrough
+            assert f"{entry['uri']}\n      sha256: {entry['content_hash']}" in walkthrough
