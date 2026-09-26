@@ -139,8 +139,12 @@ Statutory rate-tables applied (per FY2026 SBRM bundle):
       sha256: 1786274a6a9dd3cc9a9edb2092f071bc2dd042c369a98603867036c74b4cfc87
   • urn:sbrm:rate:fbt:fy2026:days-in-year-by-fy
       sha256: 8f63d3bd1685acca00717d88cc262c79c731286cfc98a19bdb6c1b2648c8baca
+  • urn:sbrm:rate:fbt:fy2026:gross-up-type-2
+      sha256: 18a4f0ebca4a1a6dd92c8e768b9bd3286e864fde3a5d909afb2eb3198a252236
+  • urn:sbrm:rate:fbt:fy2026:fbt-rate
+      sha256: 099d493830393cd1d4e7dcb09831b4b03c8f5fa3ba8e4612efa7f6dc49826c74
 
-(CAMRY-001 used all four. MAZDA-002 used the first three. TESLA-003 used none — leased path skipped deemed amounts.)
+(CAMRY-001's manifest lists the first four entries. MAZDA-002's lists the first three. TESLA-003's lists the final two: its leased path skips deemed amounts but still reports gross-up and FBT-rate provenance.)
 ```
 
 ---

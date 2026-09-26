@@ -29,3 +29,12 @@ def test_sample_uses_the_full_year():
         rows = list(csv.DictReader(source))
     assert len(rows) == 3
     assert all(int(row["daysHeldInFBTYear"]) == FULL_YEAR_DAYS for row in rows)
+
+
+def test_walkthrough_lists_every_manifest_entry():
+    walkthrough = (TEMPLATE.parents[1] / "examples/end-to-end-fbt-car-fy2026.md").read_text(encoding="utf-8")
+    for path in (TEMPLATE / "examples").glob("*.output.json"):
+        response = json.loads(path.read_text(encoding="utf-8"))
+        for entry in response["manifest"]["rate_table_uris"]:
+            assert entry["uri"] in walkthrough
+            assert entry["content_hash"] in walkthrough
