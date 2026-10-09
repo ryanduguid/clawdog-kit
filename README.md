@@ -1,5 +1,10 @@
 # ClawDog Kit
 
+**Fork status**
+
+[![Fork code quality](https://app.codacy.com/project/badge/Grade/b49fe1e6e7624c8ba29ccc5e4c24a489?branch=main)](https://app.codacy.com/gh/ryanduguid/clawdog-kit/dashboard)
+[![Fork ci](https://github.com/ryanduguid/clawdog-kit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ryanduguid/clawdog-kit/actions/workflows/ci.yml)
+
 > *An agent-driven calculator kit for Australian tax & accounting. Built by LodgeiT Labs Foundation. Stage 1: FBT car operating-cost.*
 
 ClawDog is a neurosymbolic accounting & tax engine. The **ClawDog Kit** is how humans (and their agents) feed real data into it.
