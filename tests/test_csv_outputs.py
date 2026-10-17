@@ -47,6 +47,46 @@ def arguments(source: Path, output: Path) -> list[str]:
     ]
 
 
+@pytest.mark.parametrize("alias", ["same", "symlink", "hardlink"])
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_input_collision_refused_before_requests(tmp_path, monkeypatch, alias, dry_run):
+    source = tmp_path / ("case.response.json" if alias == "same" else "input.csv")
+    write_csv(source, [{"car_id": "case"}])
+    before = source.read_bytes()
+    destination = tmp_path / "case.response.json"
+    if alias != "same":
+        try:
+            if alias == "symlink":
+                destination.symlink_to(source)
+            else:
+                destination.hardlink_to(source)
+        except OSError as error:
+            pytest.skip(f"File links unavailable: {error}")
+    post = Mock(return_value=(200, {"taxable_value": 20}))
+    monkeypatch.setattr(post_csv_to_calc, "_post_json", post)
+    argv = arguments(source, tmp_path) + (["--dry-run"] if dry_run else [])
+    assert post_csv_to_calc.main(argv) == 2
+    post.assert_not_called()
+    assert source.read_bytes() == before
+
+
+def test_output_identity_inspection_failure_stops_requests(tmp_path, monkeypatch):
+    source = tmp_path / "input.csv"
+    write_csv(source, [{"car_id": "case"}])
+    original = Path.stat
+
+    def denied(path, *args, **kwargs):
+        if path.name == "case.response.json":
+            raise PermissionError("synthetic inspection failure")
+        return original(path, *args, **kwargs)
+
+    post = Mock()
+    monkeypatch.setattr(Path, "stat", denied)
+    monkeypatch.setattr(post_csv_to_calc, "_post_json", post)
+    assert post_csv_to_calc.main(arguments(source, tmp_path)) == 2
+    post.assert_not_called()
+
+
 @pytest.mark.parametrize("dry_run", [False, True])
 @pytest.mark.parametrize(
     "identifiers",

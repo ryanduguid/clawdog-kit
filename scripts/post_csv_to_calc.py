@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 import urllib.error
 import urllib.parse
@@ -278,9 +279,22 @@ def main(argv: list[str] | None = None) -> int:
 
         # Check all destinations before making requests or writing any responses.
         root = out_dir.resolve()
+        source_path = args.input.resolve()
+        source_identity = os.fstat(fh.fileno())
         destinations: dict[str, int] = {}
         for idx, row in enumerate(reader, start=1):
-            destination = (root / f"{_row_id(row, idx)}.response.json").resolve()
+            try:
+                destination = (root / f"{_row_id(row, idx)}.response.json").resolve()
+                try:
+                    identity = destination.stat()
+                except FileNotFoundError:
+                    identity = None
+                if destination == source_path or (identity is not None and os.path.samestat(identity, source_identity)):
+                    print(f"ERROR: CSV row {idx} would overwrite the input CSV.", file=sys.stderr)
+                    return 2
+            except (OSError, RuntimeError) as exc:
+                print(f"ERROR: cannot inspect output for CSV row {idx}: {exc}", file=sys.stderr)
+                return 2
             if not destination.is_relative_to(root):
                 print(
                     f"ERROR: CSV row {idx} would write outside the output directory "
